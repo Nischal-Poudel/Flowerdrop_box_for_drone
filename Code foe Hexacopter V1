@@ -1,0 +1,245 @@
+//Servo signal inputs for aduino uno/nano/promini (3-5-6-9)
+
+#include <Servo.h>
+#include <OneButton.h>
+
+Servo servo1; //center servo
+Servo servo2; //side 1 servo
+Servo servo3; //side 2 servo
+
+
+int servo1openpos = 0;
+int servo2openpos = 0;
+int servo3openpos = 0;
+
+int servo1closepos = 135; //centre servo
+int servo2closepos = 140; //side1 Servo
+int servo3closepos = 140; //side2 Servo
+
+int servo1pos = servo1closepos;
+int servo2pos = servo2closepos;
+int servo3pos = servo3closepos;
+
+int interval = 15; //speed at which servo opens or closes
+
+
+bool lid2open = false;
+bool lid3open = false;
+bool alllidsopen = false;
+
+bool lid1closed = false;
+bool lid2closed = false;
+bool lid3closed = false;
+bool alllidsclosed = false;
+
+bool openthelid = false;
+
+
+long starttime;
+long starttime1;
+
+bool buttonState = false; //for the latch of rc signal
+bool button2State = false; //for the latch of rc signal
+
+const int btn = 2;
+const int pwm_pin = 10; 
+
+OneButton button(btn, true);   //[Active LOW]   //attach a button on pin 4 to the library
+
+
+void setup() {
+Serial.begin(9600);      //Start the Serial monitor
+Serial.println("I'm up and running!!");
+
+pinMode(btn, INPUT_PULLUP);     //select button as input
+pinMode(pwm_pin, INPUT); //Set PWM pin as INput
+
+button.attachDoubleClick(doubleclick);     // link the function to be called on a doubleclick event.  
+
+  servo1.attach(3);
+  servo2.attach(5);
+  servo3.attach(9);
+
+servo1.write(servo1pos);
+servo2.write(servo2pos);
+servo3.write(servo3pos);
+  
+starttime = millis();
+starttime1 = millis();
+alllidsclosed = true;
+}
+
+
+
+
+void loop() {
+button.tick();    //[Run One Button function]
+int pwmvalue = pulseIn(pwm_pin, HIGH, 25000); //Read Pwm value from D10
+
+//Serial.println(pwmvalue);
+
+//Serial.println(digitalRead(2));
+
+if(pwmvalue > 1600 && pwmvalue < 2000){ //1600, 2000
+  if(buttonState == false){
+  openthelid = false; //close the lid
+  buttonState = true;
+  button2State = false;
+  Serial.println("Problem here1");
+}
+}
+
+
+if(pwmvalue > 900 && pwmvalue < 1400){  //900, 1400
+ if(button2State == false){
+  openthelid = true;                    //open the lid when activated;
+  button2State = true;
+  buttonState = false;
+  Serial.println("Problem here2");
+}
+}
+
+
+
+if( openthelid == true && alllidsclosed == true ){
+  openlid();
+ Serial.println("Servos Activated to open!");
+}
+if(openthelid == false && alllidsopen == true){
+  closelid();
+   Serial.println("Servos Activated to close!");
+}
+
+}
+
+void doubleclick(){
+openthelid = !openthelid; //close/open the lid when pressed twice.
+ Serial.println("DoubleClick function is Initiated!");
+}
+
+
+void openlid(){
+//using millis function so that other processing can happen in background
+//only open middle servo once both side servos are open.
+
+
+  
+  
+  
+    if((millis()-starttime >= interval) && servo2pos > servo2openpos) { //[side 1 servo]
+    servo2pos--;
+    starttime = millis();  
+    servo2.write(servo2pos);
+    } 
+       
+     if(servo2pos <= servo2openpos){
+     lid2open = true;  
+     lid2closed = false;
+    }
+
+
+  
+/**********************************************************************************************************/
+  
+   if((millis()-starttime1 >= interval) && servo3pos > servo3openpos) { //[side 2 servo]
+    servo3pos--;
+    starttime1 = millis();
+    servo3.write(servo3pos);  
+  }
+  if(servo3pos <= servo3openpos){
+   lid3open = true;
+   lid3closed = false;  
+  }
+
+
+
+/**********************************************************************************************************/
+
+if (lid2open == true && lid3open == true){
+  if((millis()-starttime >= interval) && servo1pos > servo1openpos) { //[Middle Servo]
+    servo1pos--;
+    starttime = millis();
+  servo1.write(servo1pos);
+  }
+}
+  if(servo1pos <= servo1openpos){   
+    alllidsopen = true;
+    lid1closed = false;
+    alllidsclosed = false;
+//Serial.println("all lids closed");
+}
+
+
+/**********************************************************************************************************/
+/*
+    Serial.print("Servo2pos:- ");
+    Serial.println(servo2pos);
+    Serial.print("lid2open:- ");
+    Serial.println(lid2open);
+
+    Serial.print("Servo3pos:- ");
+    Serial.println(servo3pos);
+    Serial.print("lid3open:- ");
+
+
+    Serial.print("Servo1pos:- ");
+    Serial.println(servo1pos);
+    Serial.print("lid1open:- ");
+//    Serial.println(lid1open);
+*/
+
+}//End openlid function
+
+
+
+
+
+/**********************************************************************************************************/
+void closelid(){
+//close the middle lid first and then close side lids.  
+
+
+    if((millis()-starttime >= interval) && servo1pos < servo1closepos) { //[Middle Servo]
+    servo1pos++;
+    starttime = millis();
+    servo1.write(servo1pos);          //write the values to the servos
+  }
+  if(servo1pos >= servo1closepos){
+   lid1closed = true;
+  // lid1open = false;
+}
+
+
+
+/**********************************************************************************************************/
+
+if (lid1closed == true){
+  
+if((millis()-starttime >= interval) && servo2pos < servo2closepos) { //[side 1 servo]
+    servo2pos++;
+    starttime = millis();
+    servo2.write(servo2pos);        //write the values to the servos
+  }
+
+  if(servo2pos >= servo2closepos){
+  lid2closed = true;
+  lid2open = false;  
+  }
+
+
+
+/**********************************************************************************************************/
+ 
+   if((millis()- starttime1 >= interval) && servo3pos < servo3closepos) { //[side 2 servo]
+    servo3pos++;
+    starttime1 = millis();
+     servo3.write(servo3pos);                            //write the values to the servos
+  }
+  if(servo3pos >= servo3closepos && lid2closed == true){
+   alllidsclosed = true;
+   alllidsopen = false;
+  }
+}
+}
+
+/**********************************************************************************************************/
